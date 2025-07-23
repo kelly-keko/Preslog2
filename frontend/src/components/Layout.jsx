@@ -9,7 +9,8 @@ import {
   BarChart3, 
   LogOut,
   Menu,
-  X
+  X,
+  FileText
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -23,12 +24,29 @@ function Layout() {
     navigate('/login')
   }
 
-  const navigation = [
+  // Navigation pour employé simple
+  const employeNavigation = [
     { name: 'Tableau de bord', href: '/', icon: LayoutDashboard },
     { name: 'Historique', href: '/historique', icon: Clock },
     { name: 'Rapports', href: '/reports', icon: BarChart3 },
-    ...(user?.isRH ? [{ name: 'Utilisateurs', href: '/users', icon: Users }] : []),
-  ]
+  ];
+
+  // Navigation pour RH/DG
+  const rhNavigation = [
+    { name: 'Tableau de bord', href: '/dashboard-rh', icon: LayoutDashboard },
+  ];
+
+  // Liens d'action RH
+  const rhActions = [
+    { name: 'Valider absences', href: '/absences?status=EN_ATTENTE', icon: FileText },
+    { name: 'Valider retards', href: '/retards?status=EN_ATTENTE', icon: Clock },
+    { name: 'Gérer les employés', href: '/users', icon: Users },
+    { name: 'Rapports & Statistiques', href: '/rapports', icon: BarChart3 },
+  ];
+
+  // Choix de la navigation selon le rôle
+  const isRH = user?.role === 'RH' || user?.role === 'DG';
+  const navigation = isRH ? rhNavigation : employeNavigation;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -60,6 +78,29 @@ function Layout() {
                 {item.name}
               </NavLink>
             ))}
+            {/* Section actions RH */}
+            {isRH && (
+              <div className="mt-8">
+                <div className="text-xs font-bold text-gray-400 uppercase mb-2">Actions RH</div>
+                {rhActions.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    to={item.href}
+                    className={({ isActive }) =>
+                      `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                        isActive
+                          ? 'bg-secel-100 text-secel-900'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`
+                    }
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <item.icon className="mr-3 h-5 w-5" />
+                    {item.name}
+                  </NavLink>
+                ))}
+              </div>
+            )}
           </nav>
         </div>
       </div>
@@ -87,6 +128,28 @@ function Layout() {
                 {item.name}
               </NavLink>
             ))}
+            {/* Section actions RH pour desktop */}
+            {isRH && (
+              <div className="mt-8">
+                <div className="text-xs font-bold text-gray-400 uppercase mb-2">Actions RH</div>
+                {rhActions.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    to={item.href}
+                    className={({ isActive }) =>
+                      `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                        isActive
+                          ? 'bg-secel-100 text-secel-900'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`
+                    }
+                  >
+                    <item.icon className="mr-3 h-5 w-5" />
+                    {item.name}
+                  </NavLink>
+                ))}
+              </div>
+            )}
           </nav>
         </div>
       </div>

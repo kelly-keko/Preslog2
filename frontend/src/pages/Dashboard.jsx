@@ -18,6 +18,12 @@ function Dashboard() {
   const { user } = useAuth()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  // Ajout pour le pointage
+  const [pointageLoading, setPointageLoading] = useState(false)
+  const [pointageMessage, setPointageMessage] = useState("")
+  // Ajout pour le départ
+  const [departLoading, setDepartLoading] = useState(false)
+  const [departMessage, setDepartMessage] = useState("")
 
   useEffect(() => {
     fetchDashboardData()
@@ -48,6 +54,44 @@ function Dashboard() {
       console.error('Erreur lors du chargement des statistiques:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Fonction de pointage
+  const handlePointage = async () => {
+    setPointageLoading(true)
+    setPointageMessage("")
+    try {
+      const response = await api.post('/api/attendance/presences/employee-punch/')
+      setPointageMessage(response.data.message || "Présence enregistrée !")
+      fetchDashboardData()
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.message) {
+        setPointageMessage(error.response.data.message)
+      } else {
+        setPointageMessage("Erreur lors du pointage.")
+      }
+    } finally {
+      setPointageLoading(false)
+    }
+  }
+
+  // Fonction de pointage de départ
+  const handleDepart = async () => {
+    setDepartLoading(true)
+    setDepartMessage("")
+    try {
+      const response = await api.post('/api/attendance/presences/employee-punch-out/')
+      setDepartMessage(response.data.message || "Départ enregistré !")
+      fetchDashboardData()
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.message) {
+        setDepartMessage(error.response.data.message)
+      } else {
+        setDepartMessage("Erreur lors du pointage de départ.")
+      }
+    } finally {
+      setDepartLoading(false)
     }
   }
 
@@ -96,6 +140,36 @@ function Dashboard() {
         <p className="mt-1 text-sm text-gray-500">
           Bienvenue, {user?.first_name} {user?.last_name}. Voici votre résumé.
         </p>
+        {/* Bouton de pointage pour l'employé simple */}
+        {user?.role === 'EMPLOYE' && (
+          <div className="mt-4 space-y-2">
+            <button
+              className="btn-primary"
+              onClick={handlePointage}
+              disabled={pointageLoading || (stats && stats.time_in)}
+            >
+              {pointageLoading ? "Pointage en cours..." : "Pointer ma présence"}
+            </button>
+            {pointageMessage && (
+              <div className="text-green-600 text-sm">{pointageMessage}</div>
+            )}
+            {/* Bouton de départ : toujours visible sauf si déjà pointé */}
+            {(!stats || !stats.time_out) && (
+              <div>
+                <button
+                  className="btn-secondary mt-2"
+                  onClick={handleDepart}
+                  disabled={departLoading}
+                >
+                  {departLoading ? "Départ en cours..." : "Pointer mon départ"}
+                </button>
+                {departMessage && (
+                  <div className="text-blue-600 text-sm mt-1">{departMessage}</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Cartes de statistiques personnelles */}

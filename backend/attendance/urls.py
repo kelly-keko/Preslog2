@@ -31,6 +31,16 @@ urlpatterns = [
              PresenceViewSet.as_view({'post': 'manual_punch'}), 
              name='manual-punch'),
         
+        # Pointage employé (simulateur biométrique)
+        path('presences/employee-punch/', 
+             PresenceViewSet.as_view({'post': 'employee_punch'}), 
+             name='employee-punch'),
+        
+        # Pointage de départ employé (simulateur biométrique)
+        path('presences/employee-punch-out/', 
+             PresenceViewSet.as_view({'post': 'employee_punch_out'}), 
+             name='employee-punch-out'),
+        
         # Réception des données biométriques
         path('biometric/receive-punch/', 
              BiometricLogViewSet.as_view({'post': 'receive_punch'}), 

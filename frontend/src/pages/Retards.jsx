@@ -16,8 +16,13 @@ function Retards() {
   const [selectedStatus, setSelectedStatus] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [justificationFile, setJustificationFile] = useState(null)
 
   useEffect(() => {
+    // Si RH/DG, filtre par défaut sur EN_ATTENTE
+    if (user?.role === 'RH' || user?.role === 'DG') {
+      setSelectedStatus('EN_ATTENTE')
+    }
     fetchRetards()
   }, [selectedStatus, dateFrom, dateTo])
 
@@ -81,13 +86,19 @@ function Retards() {
     }
     setFormLoading(true)
     try {
-      await api.patch(`/api/attendance/retards/${selectedRetard.id}/justify/`, {
-        justification: justificationText
+      const formData = new FormData()
+      formData.append('justification', justificationText)
+      if (justificationFile) {
+        formData.append('justification_file', justificationFile)
+      }
+      await api.patch(`/api/attendance/retards/${selectedRetard.id}/justify/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       })
       toast.success('Justification envoyée avec succès')
       setShowJustificationForm(false)
       setSelectedRetard(null)
       setJustificationText('')
+      setJustificationFile(null)
       fetchRetards()
     } catch (error) {
       toast.error("Erreur lors de l'envoi de la justification")
@@ -96,9 +107,54 @@ function Retards() {
     }
   }
 
-  // Export (placeholder)
-  const handleExport = () => {
-    toast.success('Export en cours de développement...')
+  // Validation/refus RH
+  const handleValidate = async (retard, status) => {
+    try {
+      await api.patch(`/api/attendance/retards/${retard.id}/validate/`, { status })
+      toast.success(status === 'APPROUVEE' ? 'Retard approuvé' : 'Retard refusé')
+      fetchRetards()
+    } catch (error) {
+      toast.error("Erreur lors de la validation")
+    }
+  }
+
+  // Export PDF
+  const handleExport = async () => {
+    try {
+      const response = await api.get('/api/attendance/retards/export/', { responseType: 'blob' })
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', 'retards.pdf')
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      toast.error('Erreur lors de l\'export PDF')
+    }
+  }
+
+  // Export Excel
+  const handleExportExcel = async () => {
+    try {
+      let url = '/api/attendance/retards/export-excel/'
+      const params = new URLSearchParams()
+      if (dateFrom) params.append('date_from', dateFrom)
+      if (dateTo) params.append('date_to', dateTo)
+      if (params.toString()) {
+        url += `?${params.toString()}`
+      }
+      const response = await api.get(url, { responseType: 'blob' })
+      const urlBlob = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
+      const link = document.createElement('a')
+      link.href = urlBlob
+      link.setAttribute('download', 'retards.xlsx')
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      toast.error("Erreur lors de l'export Excel")
+    }
   }
 
   if (loading) {
@@ -180,6 +236,15 @@ function Retards() {
                   required
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Joindre un fichier justificatif (optionnel)</label>
+                <input
+                  type="file"
+                  onChange={e => setJustificationFile(e.target.files[0])}
+                  className="input-field"
+                  accept="application/pdf,image/*,.doc,.docx"
+                />
+              </div>
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
@@ -250,6 +315,11 @@ function Retards() {
                             Justifié le {new Date(retard.justified_at).toLocaleDateString('fr-FR')}
                           </div>
                         )}
+                        {retard.justification_file && (
+                          <div className="text-xs mt-1">
+                            <a href={retard.justification_file} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Voir justificatif</a>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <span className="text-gray-400 text-sm">Aucune justification</span>
@@ -272,6 +342,21 @@ function Retards() {
                           <Edit className="w-4 h-4" />
                         </button>
                       )}
+                      {/* Boutons validation RH */}
+                      {user?.role === 'RH' || user?.role === 'DG' ? (
+                        retard.justification && retard.justification_status === 'EN_ATTENTE' && (
+                          <>
+                            <button
+                              onClick={() => handleValidate(retard, 'APPROUVEE')}
+                              className="text-green-600 hover:text-green-900 text-sm border border-green-600 rounded px-2 py-1 ml-1"
+                            >Valider</button>
+                            <button
+                              onClick={() => handleValidate(retard, 'REFUSEE')}
+                              className="text-red-600 hover:text-red-900 text-sm border border-red-600 rounded px-2 py-1 ml-1"
+                            >Refuser</button>
+                          </>
+                        )
+                      ) : null}
                     </div>
                   </td>
                 </tr>

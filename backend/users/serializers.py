@@ -5,10 +5,11 @@ from django.contrib.auth.password_validation import validate_password
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    is_active = serializers.BooleanField(read_only=True)
     class Meta:
         model = User
         fields = ['id', 'username', 'first_name', 'last_name', 'email', 'role', 
-                 'matricule', 'telephone', 'date_embauche', 'departement', 'poste']
+                 'matricule', 'telephone', 'date_embauche', 'departement', 'poste', 'is_active']
         read_only_fields = ['id']
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -28,11 +29,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         validated_data.pop('password_confirm')
+        validated_data['is_active'] = True  # Force l'utilisateur à être actif
         user = User.objects.create_user(**validated_data)
         return user
 
 class UserUpdateSerializer(serializers.ModelSerializer):
+    is_active = serializers.BooleanField(required=False)
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'email', 'role', 'matricule', 
-                 'telephone', 'date_embauche', 'departement', 'poste'] 
+                 'telephone', 'date_embauche', 'departement', 'poste', 'is_active'] 

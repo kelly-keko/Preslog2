@@ -14,8 +14,15 @@ function Absences() {
   const [justificationText, setJustificationText] = useState('')
   const [formLoading, setFormLoading] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [justificationFile, setJustificationFile] = useState(null)
 
   useEffect(() => {
+    // Si RH/DG, filtre par défaut sur EN_ATTENTE
+    if (user?.role === 'RH' || user?.role === 'DG') {
+      setSelectedStatus('EN_ATTENTE')
+    }
     fetchAbsences()
   }, [selectedStatus])
 
@@ -72,13 +79,19 @@ function Absences() {
     }
     setFormLoading(true)
     try {
-      await api.patch(`/api/absences/${selectedAbsence.id}/justify/`, {
-        justification: justificationText
+      const formData = new FormData()
+      formData.append('justification', justificationText)
+      if (justificationFile) {
+        formData.append('justification_file', justificationFile)
+      }
+      await api.patch(`/api/attendance/absences/${selectedAbsence.id}/justify/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       })
       toast.success('Justification envoyée avec succès')
       setShowJustificationForm(false)
       setSelectedAbsence(null)
       setJustificationText('')
+      setJustificationFile(null)
       fetchAbsences()
     } catch (error) {
       toast.error("Erreur lors de l'envoi de la justification")
@@ -87,9 +100,54 @@ function Absences() {
     }
   }
 
-  // Export (placeholder)
-  const handleExport = () => {
-    toast.success('Export en cours de développement...')
+  // Validation/refus RH
+  const handleValidate = async (absence, status) => {
+    try {
+      await api.patch(`/api/attendance/absences/${absence.id}/validate/`, { status })
+      toast.success(status === 'APPROUVEE' ? 'Absence approuvée' : 'Absence refusée')
+      fetchAbsences()
+    } catch (error) {
+      toast.error("Erreur lors de la validation")
+    }
+  }
+
+  // Export PDF
+  const handleExport = async () => {
+    try {
+      const response = await api.get('/api/attendance/absences/export/', { responseType: 'blob' })
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', 'absences.pdf')
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      toast.error('Erreur lors de l\'export PDF')
+    }
+  }
+
+  // Export Excel
+  const handleExportExcel = async () => {
+    try {
+      let url = '/api/attendance/absences/export-excel/'
+      const params = new URLSearchParams()
+      if (dateFrom) params.append('date_from', dateFrom)
+      if (dateTo) params.append('date_to', dateTo)
+      if (params.toString()) {
+        url += `?${params.toString()}`
+      }
+      const response = await api.get(url, { responseType: 'blob' })
+      const urlBlob = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
+      const link = document.createElement('a')
+      link.href = urlBlob
+      link.setAttribute('download', 'absences.xlsx')
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      toast.error("Erreur lors de l'export Excel")
+    }
   }
 
   if (loading) {
@@ -153,6 +211,15 @@ function Absences() {
                   required
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Joindre un fichier justificatif (optionnel)</label>
+                <input
+                  type="file"
+                  onChange={e => setJustificationFile(e.target.files[0])}
+                  className="input-field"
+                  accept="application/pdf,image/*,.doc,.docx"
+                />
+              </div>
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
@@ -211,6 +278,11 @@ function Absences() {
                             Justifié le {new Date(absence.justified_at).toLocaleDateString('fr-FR')}
                           </div>
                         )}
+                        {absence.justification_file && (
+                          <div className="text-xs mt-1">
+                            <a href={absence.justification_file} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Voir justificatif</a>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <span className="text-gray-400 text-sm">Aucune justification</span>
@@ -233,6 +305,21 @@ function Absences() {
                           <Edit className="w-4 h-4" />
                         </button>
                       )}
+                      {/* Boutons validation RH */}
+                      {user?.role === 'RH' || user?.role === 'DG' ? (
+                        absence.justification && absence.justification_status === 'EN_ATTENTE' && (
+                          <>
+                            <button
+                              onClick={() => handleValidate(absence, 'APPROUVEE')}
+                              className="text-green-600 hover:text-green-900 text-sm border border-green-600 rounded px-2 py-1 ml-1"
+                            >Valider</button>
+                            <button
+                              onClick={() => handleValidate(absence, 'REFUSEE')}
+                              className="text-red-600 hover:text-red-900 text-sm border border-red-600 rounded px-2 py-1 ml-1"
+                            >Refuser</button>
+                          </>
+                        )
+                      ) : null}
                     </div>
                   </td>
                 </tr>

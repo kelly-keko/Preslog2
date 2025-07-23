@@ -76,16 +76,57 @@ function Rapports() {
   const handleExport = async (format) => {
     setExportLoading(true)
     try {
-      // Simulation d'export (à implémenter côté backend)
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      if (format === 'excel') {
-        toast.success('Export Excel en cours de développement...')
-      } else if (format === 'pdf') {
-        toast.success('Export PDF en cours de développement...')
+      if (format === 'pdf') {
+        let url = ''
+        if (reportType === 'presences' || reportType === 'performance') {
+          url = '/api/attendance/presences/export/'
+        } else if (reportType === 'absences') {
+          url = '/api/attendance/absences/export/'
+        } else if (reportType === 'retards') {
+          url = '/api/attendance/retards/export/'
+        }
+        const params = new URLSearchParams()
+        if (dateFrom) params.append('date_from', dateFrom)
+        if (dateTo) params.append('date_to', dateTo)
+        if (isRH && selectedEmployee) params.append('employee_id', selectedEmployee)
+        if (params.toString()) {
+          url += `?${params.toString()}`
+        }
+        const response = await api.get(url, { responseType: 'blob' })
+        const urlBlob = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+        const link = document.createElement('a')
+        link.href = urlBlob
+        link.setAttribute('download', `${reportType}.pdf`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+      } else if (format === 'excel') {
+        let url = ''
+        if (reportType === 'presences' || reportType === 'performance') {
+          url = '/api/attendance/presences/export-excel/'
+        } else if (reportType === 'absences') {
+          url = '/api/attendance/absences/export-excel/'
+        } else if (reportType === 'retards') {
+          url = '/api/attendance/retards/export-excel/'
+        }
+        const params = new URLSearchParams()
+        if (dateFrom) params.append('date_from', dateFrom)
+        if (dateTo) params.append('date_to', dateTo)
+        if (isRH && selectedEmployee) params.append('employee_id', selectedEmployee)
+        if (params.toString()) {
+          url += `?${params.toString()}`
+        }
+        const response = await api.get(url, { responseType: 'blob' })
+        const urlBlob = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
+        const link = document.createElement('a')
+        link.href = urlBlob
+        link.setAttribute('download', `${reportType}.xlsx`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
       }
     } catch (error) {
-      toast.error("Erreur lors de l'export")
+      toast.error("Erreur lors de l'export PDF")
     } finally {
       setExportLoading(false)
     }
@@ -120,9 +161,11 @@ function Rapports() {
       {/* En-tête de la page */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Rapports et statistiques</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{isRH ? 'Rapports & Statistiques RH' : 'Rapports et statistiques'}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Analyses détaillées des présences et performances
+            {isRH
+              ? "Vue globale sur l'assiduité, la ponctualité et la performance de l'ensemble des employés. Filtres, exports et analyses avancées."
+              : "Analyses détaillées de vos présences et performances personnelles."}
           </p>
         </div>
         <div className="flex gap-3">

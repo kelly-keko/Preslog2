@@ -134,10 +134,13 @@ class RetardSerializer(serializers.ModelSerializer):
 class RetardJustificationSerializer(serializers.Serializer):
     """Sérialiseur pour justifier un retard"""
     justification = serializers.CharField(max_length=1000, required=True)
+    justification_file = serializers.FileField(required=False, allow_null=True)
     
     def update(self, instance, validated_data):
         """Mettre à jour la justification d'un retard"""
         instance.justification = validated_data['justification']
+        if 'justification_file' in validated_data:
+            instance.justification_file = validated_data['justification_file']
         instance.justification_status = 'EN_ATTENTE'
         instance.justified_at = datetime.now()
         instance.save()
@@ -189,10 +192,13 @@ class AbsenceSerializer(serializers.ModelSerializer):
 class AbsenceJustificationSerializer(serializers.Serializer):
     """Sérialiseur pour justifier une absence"""
     justification = serializers.CharField(max_length=1000, required=True)
+    justification_file = serializers.FileField(required=False, allow_null=True)
     
     def update(self, instance, validated_data):
         """Mettre à jour la justification d'une absence"""
         instance.justification = validated_data['justification']
+        if 'justification_file' in validated_data:
+            instance.justification_file = validated_data['justification_file']
         instance.justification_status = 'EN_ATTENTE'
         instance.justified_at = datetime.now()
         instance.save()

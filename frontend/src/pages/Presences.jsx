@@ -64,9 +64,27 @@ function Presences() {
     }
   }
 
-  // Fonction pour exporter les données (fonctionnalité à venir)
-  const handleExport = () => {
-    toast.success('Export en cours de développement...')
+  // Fonction pour exporter les données (Excel)
+  const handleExportExcel = async () => {
+    try {
+      let url = '/api/attendance/presences/export-excel/'
+      const params = new URLSearchParams()
+      if (dateFrom) params.append('date_from', dateFrom)
+      if (dateTo) params.append('date_to', dateTo)
+      if (params.toString()) {
+        url += `?${params.toString()}`
+      }
+      const response = await api.get(url, { responseType: 'blob' })
+      const urlBlob = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
+      const link = document.createElement('a')
+      link.href = urlBlob
+      link.setAttribute('download', 'presences.xlsx')
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      toast.error("Erreur lors de l'export Excel")
+    }
   }
 
   if (loading) {
@@ -84,7 +102,7 @@ function Presences() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button onClick={handleExport} className="btn-secondary flex items-center gap-2">
+          <button onClick={handleExportExcel} className="btn-secondary flex items-center gap-2">
             <Download className="w-4 h-4" />
             Exporter
           </button>

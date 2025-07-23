@@ -69,6 +69,7 @@ class Retard(models.Model):
         default='EN_ATTENTE'
     )
     justified_at = models.DateTimeField(null=True, blank=True)
+    justification_file = models.FileField(upload_to='justificatifs/', null=True, blank=True, help_text="Fichier justificatif")
     validated_by = models.ForeignKey(
         User, 
         on_delete=models.SET_NULL, 
@@ -114,6 +115,7 @@ class Absence(models.Model):
         default='EN_ATTENTE'
     )
     justified_at = models.DateTimeField(null=True, blank=True)
+    justification_file = models.FileField(upload_to='justificatifs/', null=True, blank=True, help_text="Fichier justificatif")
     validated_by = models.ForeignKey(
         User, 
         on_delete=models.SET_NULL, 
