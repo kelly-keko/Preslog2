@@ -7,10 +7,12 @@ import Absences from './pages/Absences'
 import Retards from './pages/Retards'
 import Users from './pages/Users'
 import Rapports from './pages/Rapports'
-import Historique from './pages/Historique' // Importer la nouvelle page
+import Historique from './pages/Historique'
 import DashboardRH from './pages/DashboardRH'
 import Layout from './components/Layout'
 import LoadingSpinner from './components/LoadingSpinner'
+import AbsencesEmploye from './pages/AbsencesEmploye'
+import AbsencesRH from './pages/AbsencesRH'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -37,10 +39,12 @@ function AppRoutes() {
         <Route path="presences" element={<Presences />} />
         <Route path="absences" element={<Absences />} />
         <Route path="retards" element={<Retards />} />
-        <Route path="historique" element={<Historique />} /> {/* Ajouter la route */}
+        <Route path="historique" element={<Historique />} />
         <Route path="reports" element={<Rapports />} />
         <Route path="rapports" element={<Rapports />} />
         <Route path="users" element={<Users />} />
+        <Route path="mes-absences" element={<AbsencesEmploye />} />
+        <Route path="absences-rh" element={<AbsencesRH />} />
       </Route>
     </Routes>
   )
@@ -54,4 +58,4 @@ function App() {
   )
 }
 
-export default App 
+export default App

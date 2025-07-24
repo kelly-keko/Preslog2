@@ -28,12 +28,14 @@ class AbsenceSerializer(serializers.ModelSerializer):
     approuve_par_nom = serializers.CharField(source='approuve_par.get_full_name', read_only=True)
     type_absence_display = serializers.CharField(source='get_type_absence_display', read_only=True)
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
-    
+    justification_status = serializers.CharField(source='statut', read_only=True)  # Ajouté
+
     class Meta:
         model = Absence
         fields = ['id', 'employe', 'employe_nom', 'date_debut', 'date_fin', 
                  'type_absence', 'type_absence_display', 'motif', 'justificatif',
-                 'statut', 'statut_display', 'approuve_par', 'approuve_par_nom',
+                 'statut', 'statut_display', 'justification_status',  # Ajouté
+                 'approuve_par', 'approuve_par_nom',
                  'date_approbation', 'commentaire_rh', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -57,12 +59,14 @@ class RetardSerializer(serializers.ModelSerializer):
     approuve_par_nom = serializers.CharField(source='approuve_par.get_full_name', read_only=True)
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
     duree_retard = serializers.ReadOnlyField()
-    
+    justification_status = serializers.CharField(source='statut', read_only=True)  # Ajouté
+
     class Meta:
         model = Retard
         fields = ['id', 'employe', 'employe_nom', 'date', 'heure_arrivee_effective',
                  'heure_arrivee_prevue', 'motif', 'justificatif', 'statut',
-                 'statut_display', 'approuve_par', 'approuve_par_nom', 'duree_retard',
+                 'statut_display', 'justification_status',  # Ajouté
+                 'approuve_par', 'approuve_par_nom', 'duree_retard',
                  'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -79,4 +83,7 @@ class RetardUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Retard
         fields = ['statut']
-        read_only_fields = ['employe', 'date', 'heure_arrivee_effective', 'heure_arrivee_prevue', 'motif', 'justificatif'] 
+        read_only_fields = ['employe', 'date', 'heure_arrivee_effective', 'heure_arrivee_prevue', 'motif', 'justificatif']
+
+# SELECT id, statut FROM presences_absence WHERE employe_id = ...;
+# SELECT id, statut FROM presences_retard WHERE employe_id = ...;

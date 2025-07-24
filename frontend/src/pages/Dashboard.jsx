@@ -66,11 +66,18 @@ function Dashboard() {
       setPointageMessage(response.data.message || "Présence enregistrée !")
       fetchDashboardData()
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.message) {
-        setPointageMessage(error.response.data.message)
+      if (error.response && error.response.data) {
+        // Affiche tout le contenu de la réponse d'erreur pour debug
+        setPointageMessage(
+          error.response.data.message ||
+          JSON.stringify(error.response.data) ||
+          "Erreur lors du pointage."
+        )
       } else {
         setPointageMessage("Erreur lors du pointage.")
       }
+      // Ajout debug : log dans la console
+      console.error('Erreur pointage:', error)
     } finally {
       setPointageLoading(false)
     }

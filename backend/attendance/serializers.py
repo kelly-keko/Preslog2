@@ -58,11 +58,15 @@ class PresenceSerializer(serializers.ModelSerializer):
             return 'TERMINE'
     
     def get_total_hours(self, obj):
-        """Calculer le total des heures travaillées"""
+        """Calculer le total des heures travaillées (ne compte pas après 18h00)"""
         if obj.time_in and obj.time_out:
-            # Calculer la différence en heures
+            from datetime import datetime, time
             start = datetime.combine(obj.date, obj.time_in)
-            end = datetime.combine(obj.date, obj.time_out)
+            limit = time(18, 0)
+            end_time = obj.time_out if obj.time_out <= limit else limit
+            end = datetime.combine(obj.date, end_time)
+            if end < start:
+                return 0
             diff = end - start
             hours = diff.total_seconds() / 3600
             return round(hours, 2)
@@ -98,19 +102,20 @@ class RetardSerializer(serializers.ModelSerializer):
     actual_time_display = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
     validated_by_name = serializers.SerializerMethodField()
+    justification_file = serializers.FileField(read_only=True)
     
     class Meta:
         model = Retard
         fields = [
             'id', 'employee', 'presence', 'date', 'date_display',
             'expected_time', 'expected_time_display', 'actual_time', 'actual_time_display',
-            'delay_minutes', 'justification', 'justification_status', 'status_display',
+            'delay_minutes', 'justification', 'justification_file', 'justification_status', 'status_display',
             'justified_at', 'validated_by', 'validated_by_name', 'validated_at',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
             'employee', 'presence', 'date', 'expected_time', 'actual_time', 
-            'delay_minutes', 'justified_at', 'validated_by', 'validated_at',
+            'delay_minutes', 'justified_at', 'justification_file', 'validated_by', 'validated_at',
             'created_at', 'updated_at'
         ]
     
@@ -164,17 +169,18 @@ class AbsenceSerializer(serializers.ModelSerializer):
     date_display = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
     validated_by_name = serializers.SerializerMethodField()
+    justification_file = serializers.FileField(read_only=True)
     
     class Meta:
         model = Absence
         fields = [
-            'id', 'employee', 'date', 'date_display', 'justification',
+            'id', 'employee', 'date', 'date_display', 'justification', 'justification_file',
             'justification_status', 'status_display', 'justified_at',
             'validated_by', 'validated_by_name', 'validated_at',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'employee', 'date', 'justified_at', 'validated_by', 
+            'employee', 'date', 'justified_at', 'justification_file', 'validated_by', 
             'validated_at', 'created_at', 'updated_at'
         ]
     

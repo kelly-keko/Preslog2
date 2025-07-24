@@ -75,11 +75,16 @@ class PresenceAdmin(admin.ModelAdmin):
     status.short_description = 'Statut'
     
     def total_hours(self, obj):
-        """Total des heures travaillées"""
+        """Total des heures travaillées (ne compte pas après 18h00)"""
         if obj.time_in and obj.time_out:
-            from datetime import datetime
+            from datetime import datetime, time
             start = datetime.combine(obj.date, obj.time_in)
-            end = datetime.combine(obj.date, obj.time_out)
+            # Limite à 18h00 si time_out > 18h00
+            limit = time(18, 0)
+            end_time = obj.time_out if obj.time_out <= limit else limit
+            end = datetime.combine(obj.date, end_time)
+            if end < start:
+                return '-'
             diff = end - start
             hours = diff.total_seconds() / 3600
             return f"{hours:.2f}h"
@@ -105,7 +110,7 @@ class RetardAdmin(admin.ModelAdmin):
     
     readonly_fields = [
         'employee', 'presence', 'date', 'expected_time', 'actual_time', 
-        'delay_minutes', 'justified_at', 'validated_by', 'validated_at',
+        'delay_minutes', 'justified_at', 'justification_file', 'validated_by', 'validated_at',
         'created_at', 'updated_at'
     ]
     
@@ -119,7 +124,7 @@ class RetardAdmin(admin.ModelAdmin):
             'fields': ('date', 'expected_time', 'actual_time', 'delay_minutes')
         }),
         ('Justification', {
-            'fields': ('justification', 'justification_status', 'justified_at')
+            'fields': ('justification', 'justification_file', 'justification_status', 'justified_at')
         }),
         ('Validation RH', {
             'fields': ('validated_by', 'validated_at'),
@@ -186,7 +191,7 @@ class AbsenceAdmin(admin.ModelAdmin):
     ordering = ['-date', '-created_at']
     
     readonly_fields = [
-        'employee', 'date', 'justified_at', 'validated_by', 'validated_at',
+        'employee', 'date', 'justified_at', 'justification_file', 'validated_by', 'validated_at',
         'created_at', 'updated_at'
     ]
     
@@ -200,7 +205,7 @@ class AbsenceAdmin(admin.ModelAdmin):
             'fields': ('date',)
         }),
         ('Justification', {
-            'fields': ('justification', 'justification_status', 'justified_at')
+            'fields': ('justification', 'justification_file', 'justification_status', 'justified_at')
         }),
         ('Validation RH', {
             'fields': ('validated_by', 'validated_at'),

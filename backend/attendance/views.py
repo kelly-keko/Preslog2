@@ -41,6 +41,15 @@ class IsOwnerOrRH(permissions.BasePermission):
             return True
         return obj.employee == request.user
 
+class IsEmployeOrRHOrReadOnly(permissions.BasePermission):
+    """
+    Permission : DG, RH et EMPLOYE peuvent faire POST (pour le pointage), autres lecture seule
+    """
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.role in ['DG', 'RH', 'EMPLOYE']
+
 class PresenceViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion des présences
@@ -167,7 +176,7 @@ class PresenceViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(presence)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['post'], url_path='employee-punch')
+    @action(detail=False, methods=['post'], url_path='employee-punch', permission_classes=[IsEmployeOrRHOrReadOnly])
     def employee_punch(self, request):
         """
         Permet à un employé de pointer sa présence (simulateur biométrique)
@@ -202,7 +211,7 @@ class PresenceViewSet(viewsets.ModelViewSet):
             'heure': heure.strftime('%H:%M')
         }, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=['post'], url_path='employee-punch-out')
+    @action(detail=False, methods=['post'], url_path='employee-punch-out', permission_classes=[IsEmployeOrRHOrReadOnly])
     def employee_punch_out(self, request):
         """
         Permet à un employé de pointer son départ (simulateur biométrique)
@@ -847,6 +856,31 @@ class AbsenceViewSet(viewsets.ReadOnlyModelViewSet):
         response['Content-Disposition'] = 'attachment; filename="absences.xlsx"'
         return response
 
+    @action(detail=False, methods=['get'], url_path='mes-absences')
+    def mes_absences(self, request):
+        """
+        Retourne la liste des absences ET des retards de l'utilisateur connecté
+        """
+        user = request.user
+
+        absences = Absence.objects.filter(employee=user).order_by('-date')
+        retards = Retard.objects.filter(employee=user).order_by('-date')
+
+        absences_data = AbsenceSerializer(absences, many=True).data
+        retards_data = RetardSerializer(retards, many=True).data
+
+        # On ajoute un champ 'type' pour différencier dans le front
+        for a in absences_data:
+            a['type'] = 'ABSENCE'
+        for r in retards_data:
+            r['type'] = 'RETARD'
+
+        # Fusionne et trie par date (optionnel)
+        all_data = absences_data + retards_data
+        all_data.sort(key=lambda x: x['date'], reverse=True)
+
+        return Response(all_data)
+
 class BiometricLogViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion des logs biométriques
@@ -951,4 +985,4 @@ class BiometricLogViewSet(viewsets.ModelViewSet):
             'success': True,
             'message': f'{absences_created} absences créées pour le {absence_date}',
             'absences_created': absences_created
-        }) 
+        })
